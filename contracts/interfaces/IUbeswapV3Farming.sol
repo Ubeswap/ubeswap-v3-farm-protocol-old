@@ -10,10 +10,11 @@ import '@uniswap/v3-core/contracts/interfaces/IERC20Minimal.sol';
 
 import '@uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol';
 import '@uniswap/v3-periphery/contracts/interfaces/IMulticall.sol';
+import './IOffChainIncentiveCalculations.sol';
 
 /// @title Ubeswap V3 Farming Interface
 /// @notice Allows staking V3 nonfungible liquidity tokens in exchange for reward tokens
-interface IUbeswapV3Farming is IERC721Receiver, IMulticall {
+interface IUbeswapV3Farming is IERC721Receiver, IOffChainIncentiveCalculations, IMulticall {
     /// @param rewardToken The token being distributed as a reward
     /// @param pool The Uniswap V3 compatible pool
     /// @param startTime The time when the incentive program begins
@@ -46,8 +47,6 @@ interface IUbeswapV3Farming is IERC721Receiver, IMulticall {
 
     /// @notice The max duration oc lock time that can be given to an incentive
     function maxLockTime() external view returns (uint256);
-
-
 
     /// @notice Represents a staking incentive
     /// @param incentiveId The ID of the incentive computed from its parameters

@@ -24,27 +24,42 @@ library RewardMath {
         uint160 stakeInitialSecondsPerLiquidityInsideX128,
         uint160 positionSecondsPerLiquidityInsideX128,
         uint128 liquidity,
+        uint32 stakeTime,
+        uint32 incentiveLastUpdateTime,
         uint128 stakeClaimedReward
-    ) internal pure returns (uint128 reward, uint160 accumulatedSeconds) {
+    ) internal view returns (uint128 reward, uint160 accumulatedSeconds) {
+        // following subtractions are safe
         uint256 totalRewardFromStakeTime = incentiveCumulativeReward - incentiveCumulativeRewardWhenStaked;
         uint160 totalSecondsInsideFromStakeTime = incentiveTotalSecondsInsideX128 - incentiveTotalSecondsInsideX128WhenStaked;
 
         // this operation is safe, as the difference cannot be greater than 1/stake.liquidity
         accumulatedSeconds = (positionSecondsPerLiquidityInsideX128 - stakeInitialSecondsPerLiquidityInsideX128) * liquidity;
 
-        uint128 rewardSoFar = uint128(FullMath.mulDiv(totalRewardFromStakeTime, accumulatedSeconds, totalSecondsInsideFromStakeTime));
+        if (incentiveLastUpdateTime < stakeTime) {
+            reward = 0;
+        } else {
+            uint256 rewardSoFar = FullMath.mulDiv(totalRewardFromStakeTime, accumulatedSeconds, totalSecondsInsideFromStakeTime);
 
-        reward = rewardSoFar > stakeClaimedReward ? (stakeClaimedReward - rewardSoFar) : 0;
+            // following subtractions are safe
+            uint256 stakeDuration = block.timestamp - stakeTime;
+            uint256 stakeDurationOnLastUpdate = incentiveLastUpdateTime - stakeTime;
+            // cutting proprtional to excess time after last update time
+            rewardSoFar = FullMath.mulDiv(rewardSoFar, stakeDurationOnLastUpdate, stakeDuration);
+
+            reward = rewardSoFar > stakeClaimedReward ? uint128(rewardSoFar - stakeClaimedReward ) : 0;
+        }
     }
 }
 
 /*
-    reward = distributed rewards of incentive from stake time to last update date of incentive
+    reward = distributed rewards of incentive from stake time to last update time of incentive
     seconds_of_stake = secondsInside value that is calculated by taking the difference between last value and the value at the stake time.
-    total_seconds_of_incentive = total secondsInside value for every token that is staked between last value and the value that is recorded on stake
+    total_seconds_of_incentive = total secondsInside value for all staked tokens from last update time on stake time to last update time
+    stake_duration = seconds from stake time to now
+    stake_duration_on_last_update = seconds from stake time to last update time of incentive
 
-        reward x seconds_of_stake
-        --------------------------
-        total_seconds_of_incentive
+                       seconds_of_stake             stake_duration_on_last_update
+        reward  x  ---------------------------  x  -------------------------------
+                   total_seconds_of_incentive             stake_duration
 
 */

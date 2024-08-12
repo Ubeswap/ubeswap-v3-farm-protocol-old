@@ -96,7 +96,7 @@ contract UbeswapV3Farming is IUbeswapV3Farming, AccessControl, OffChainIncentive
 
     /// @dev stakes[incentiveId][tokenId] => Stake
     mapping(bytes32 => mapping(uint256 => Stake)) public override stakes;
-
+    
     /// @param _factory the Uniswap V3 compatible factory
     /// @param _nonfungiblePositionManager the NFT position manager contract address
     /// @param _maxIncentiveStartLeadTime the max duration of an incentive in seconds
@@ -205,7 +205,8 @@ contract UbeswapV3Farming is IUbeswapV3Farming, AccessControl, OffChainIncentive
         bytes32 incentiveId = IncentiveId.compute(key);
         Incentive memory currIncentive = incentives[incentiveId];
         require(timestamp > currIncentive.lastUpdateTime, "time must be after lastUpdateTime");
-        require(totalSecondsInsideX128 > incentiveDistributionInfos[incentiveId][currIncentive.lastUpdateTime].totalSecondsInsideX128, "totalSecondsInsideX128 must increase");
+        IncentiveDistributionInfo memory currInfo = incentiveDistributionInfos[incentiveId][currIncentive.lastUpdateTime];
+        require(totalSecondsInsideX128 >= currInfo.totalSecondsInsideX128, "totalSecondsInsideX128 must increase");
         IncentivePeriod memory currPeriod = incentivePeriods[incentiveId][currIncentive.currentPeriodId];
         uint128 accumulatedReward = 0;
         if (timestamp > currIncentive.endTime) {
@@ -218,7 +219,11 @@ contract UbeswapV3Farming is IUbeswapV3Farming, AccessControl, OffChainIncentive
         } else {
             accumulatedReward = (timestamp - currIncentive.lastUpdateTime) * currPeriod.rewardPerSecond;
         }
-        currIncentive.cumulativeReward += accumulatedReward;
+
+        // if totalSecondsInsideX128 is not increased we dont distribute reward
+        if (currInfo.totalSecondsInsideX128 != totalSecondsInsideX128) {
+            currIncentive.cumulativeReward += accumulatedReward;
+        }
         currIncentive.lastUpdateTime = timestamp;
         incentives[incentiveId] = currIncentive;
 
@@ -398,6 +403,8 @@ contract UbeswapV3Farming is IUbeswapV3Farming, AccessControl, OffChainIncentive
             stake.initialSecondsPerLiquidityInsideX128, // stakeInitialSecondsPerLiquidityInsideX128
             secondsPerLiquidityInsideX128, // positionSecondsPerLiquidityInsideX128
             stake.liquidity, // liquidity
+            stake.stakeTime, // stakeTime
+            incentive.lastUpdateTime, // incentiveLastUpdateTime
             stake.claimedReward // stakeClaimedReward
         );
     }
@@ -422,10 +429,10 @@ contract UbeswapV3Farming is IUbeswapV3Farming, AccessControl, OffChainIncentive
             stake.initialSecondsPerLiquidityInsideX128, // stakeInitialSecondsPerLiquidityInsideX128
             secondsPerLiquidityInsideX128, // positionSecondsPerLiquidityInsideX128
             stake.liquidity, // liquidity
+            stake.stakeTime, // stakeTime
+            incentive.lastUpdateTime, // incentiveLastUpdateTime
             stake.claimedReward // stakeClaimedReward
         );
-
-        require(reward > 0, 'no reward');
 
         stakes[incentiveId][tokenId].claimedReward += reward;
 
