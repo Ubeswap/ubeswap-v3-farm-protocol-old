@@ -43,22 +43,23 @@ abstract contract OffChainIncentiveCalculations is IOffChainIncentiveCalculation
     // incentiveId => totalSecondsInside
     mapping(bytes32 => uint160) public override unstakedTotalSeconds;
 
-    function getStakedToken(bytes32 incentiveId, uint256 index) public override view returns(uint256) {
+    function getStakedToken(bytes32 incentiveId, uint256 index) public view override returns (uint256) {
         return _stakedTokens[incentiveId].at(index);
     }
 
-    function calculateIncentiveTotalSecondsInsideX128(bytes32 incentiveId, IUniswapV3Pool pool, uint256 startIndex, uint256 endIndex)
-        external
-        override
-        view
-        returns (uint160)
-    {
+    function calculateIncentiveTotalSecondsInsideX128(
+        bytes32 incentiveId,
+        IUniswapV3Pool pool,
+        uint256 startIndex,
+        uint256 endIndex
+    ) external view override returns (uint160) {
         uint160 totalValue = 0;
 
         for (uint256 i = startIndex; i < endIndex; i++) {
             uint256 tokenId = _stakedTokens[incentiveId].at(i);
             require(tokenId > 0, 'stake does not exist');
-            (uint160 initialSecondsPerLiquidityInsideX128, uint128 liquidity, int24 tickLower, int24 tickUpper) = _getStakeInfoForOffChainCalc(incentiveId, tokenId);
+            (uint160 initialSecondsPerLiquidityInsideX128, uint128 liquidity, int24 tickLower, int24 tickUpper) =
+                _getStakeInfoForOffChainCalc(incentiveId, tokenId);
 
             (, uint160 secondsPerLiquidityInsideX128, ) = pool.snapshotCumulativesInside(tickLower, tickUpper);
 
@@ -68,16 +69,32 @@ abstract contract OffChainIncentiveCalculations is IOffChainIncentiveCalculation
         return totalValue;
     }
 
-    function _addStakedToken(bytes32 incentiveId, uint256 tokenId, uint256 currNumberOfStake) internal {
+    function _addStakedToken(
+        bytes32 incentiveId,
+        uint256 tokenId,
+        uint256 currNumberOfStake
+    ) internal {
         _stakedTokens[incentiveId].add(tokenId, currNumberOfStake);
     }
 
-    function _removeStakedToken(bytes32 incentiveId, uint256 tokenId, uint256 currNumberOfStake , uint160 accumulatedSeconds) internal {
+    function _removeStakedToken(
+        bytes32 incentiveId,
+        uint256 tokenId,
+        uint256 currNumberOfStake,
+        uint160 accumulatedSeconds
+    ) internal {
         _stakedTokens[incentiveId].remove(tokenId, currNumberOfStake);
         unstakedTotalSeconds[incentiveId] += accumulatedSeconds;
     }
 
-    function _getStakeInfoForOffChainCalc(bytes32 incentiveId, uint256 tokenId) internal view virtual returns(uint160 initialSecondsPerLiquidityInsideX128, uint128 liquidity, int24 tickLower, int24 tickUpper);
-
+    function _getStakeInfoForOffChainCalc(bytes32 incentiveId, uint256 tokenId)
+        internal
+        view
+        virtual
+        returns (
+            uint160 initialSecondsPerLiquidityInsideX128,
+            uint128 liquidity,
+            int24 tickLower,
+            int24 tickUpper
+        );
 }
-

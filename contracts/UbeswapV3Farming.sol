@@ -19,13 +19,13 @@ import '@uniswap/v3-periphery/contracts/base/Multicall.sol';
 
 /// @title Off-chain assisted Ubeswap V3 Farming Protocol
 contract UbeswapV3Farming is IUbeswapV3Farming, AccessControl, OffChainIncentiveCalculations, Multicall {
-    bytes32 public constant INCENTIVE_MANAGER_ROLE = keccak256("INCENTIVE_MANAGER_ROLE");
-    bytes32 public constant INCENTIVE_UPDATER_ROLE = keccak256("INCENTIVE_UPDATER_ROLE");
+    bytes32 public constant INCENTIVE_MANAGER_ROLE = keccak256('INCENTIVE_MANAGER_ROLE');
+    bytes32 public constant INCENTIVE_UPDATER_ROLE = keccak256('INCENTIVE_UPDATER_ROLE');
 
     /// @notice Represents a staking incentive
     struct Incentive {
         uint128 cumulativeReward;
-        uint32 currentPeriodId; 
+        uint32 currentPeriodId;
         uint32 lastUpdateTime; // last update date for cumulativeReward and IncentiveDistributionInfo
         uint32 endTime; // this will be updated when new reward added
         uint32 numberOfStakes;
@@ -38,7 +38,7 @@ contract UbeswapV3Farming is IUbeswapV3Farming, AccessControl, OffChainIncentive
     }
 
     struct IncentiveDistributionInfo {
-        uint160 totalSecondsInsideX128;  // total liquidity-seconds that are staked in the incentive. (this value is calculated off-chain)
+        uint160 totalSecondsInsideX128; // total liquidity-seconds that are staked in the incentive. (this value is calculated off-chain)
         uint96 cumulativeRewardMicroEth; // accumulated reward distribution on specific time (unit: microether)
     }
 
@@ -96,7 +96,7 @@ contract UbeswapV3Farming is IUbeswapV3Farming, AccessControl, OffChainIncentive
 
     /// @dev stakes[incentiveId][tokenId] => Stake
     mapping(bytes32 => mapping(uint256 => Stake)) public override stakes;
-    
+
     /// @param _factory the Uniswap V3 compatible factory
     /// @param _nonfungiblePositionManager the NFT position manager contract address
     /// @param _maxIncentiveStartLeadTime the max duration of an incentive in seconds
@@ -121,33 +121,25 @@ contract UbeswapV3Farming is IUbeswapV3Farming, AccessControl, OffChainIncentive
     }
 
     /// @inheritdoc IUbeswapV3Farming
-    function createIncentive(IncentiveKey memory key, uint32 duration, uint128 reward) external override {
+    function createIncentive(
+        IncentiveKey memory key,
+        uint32 duration,
+        uint128 reward
+    ) external override {
         require(hasRole(INCENTIVE_MANAGER_ROLE, msg.sender));
         uint32 endTime = key.startTime + duration;
         require(reward > 0, 'reward must be positive');
         require(duration > 0, 'duration must be positive');
-        require(
-            block.timestamp <= key.startTime,
-            'start time must be now or in the future'
-        );
-        require(
-            key.startTime - block.timestamp <= maxIncentiveStartLeadTime,
-            'start time too far into future'
-        );
-        require(
-            duration <= maxIncentivePeriodDuration,
-            'incentive duration is too long'
-        );
+        require(block.timestamp <= key.startTime, 'start time must be now or in the future');
+        require(key.startTime - block.timestamp <= maxIncentiveStartLeadTime, 'start time too far into future');
+        require(duration <= maxIncentivePeriodDuration, 'incentive duration is too long');
         require(key.lockTime <= maxLockTime, 'wrong lock time');
         require(key.maxTickLower > key.minTickLower, 'wrong tickLower range');
         require(key.maxTickUpper > key.minTickUpper, 'wrong tickUpper range');
 
         bytes32 incentiveId = IncentiveId.compute(key);
 
-        require(
-            incentives[incentiveId].endTime == 0,
-            'incentive already exists'
-        );
+        require(incentives[incentiveId].endTime == 0, 'incentive already exists');
 
         incentives[incentiveId].endTime = endTime;
         incentivePeriods[incentiveId][0] = IncentivePeriod({
@@ -164,25 +156,21 @@ contract UbeswapV3Farming is IUbeswapV3Farming, AccessControl, OffChainIncentive
     }
 
     /// @inheritdoc IUbeswapV3Farming
-    function extendIncentive(IncentiveKey memory key, uint32 newPeriodId, uint32 duration, uint128 reward) external override {
+    function extendIncentive(
+        IncentiveKey memory key,
+        uint32 newPeriodId,
+        uint32 duration,
+        uint128 reward
+    ) external override {
         require(hasRole(INCENTIVE_MANAGER_ROLE, msg.sender));
         require(reward > 0, 'reward must be positive');
         require(duration > 0, 'duration must be positive');
-        require(
-            duration <= maxIncentivePeriodDuration,
-            'incentive duration is too long'
-        );
+        require(duration <= maxIncentivePeriodDuration, 'incentive duration is too long');
 
         bytes32 incentiveId = IncentiveId.compute(key);
         uint32 currentEndTime = incentives[incentiveId].endTime;
-        require(
-            currentEndTime > 0,
-            'incentive not exists'
-        );
-        require(
-            incentives[incentiveId].currentPeriodId == (newPeriodId - 1),
-            'wrong period id'
-        );
+        require(currentEndTime > 0, 'incentive not exists');
+        require(incentives[incentiveId].currentPeriodId == (newPeriodId - 1), 'wrong period id');
 
         uint32 newEndTime = currentEndTime + duration;
         incentivePeriods[incentiveId][newPeriodId] = IncentivePeriod({
@@ -199,20 +187,25 @@ contract UbeswapV3Farming is IUbeswapV3Farming, AccessControl, OffChainIncentive
     }
 
     /// @inheritdoc IUbeswapV3Farming
-    function updateIncentiveDistributionInfo (IncentiveKey memory key, uint160 totalSecondsInsideX128, uint32 timestamp) external override  {
+    function updateIncentiveDistributionInfo(
+        IncentiveKey memory key,
+        uint160 totalSecondsInsideX128,
+        uint32 timestamp
+    ) external override {
         require(hasRole(INCENTIVE_UPDATER_ROLE, msg.sender));
-        require(timestamp < block.timestamp, "time must be before now");
+        require(timestamp < block.timestamp, 'time must be before now');
         bytes32 incentiveId = IncentiveId.compute(key);
         Incentive memory currIncentive = incentives[incentiveId];
-        require(timestamp > currIncentive.lastUpdateTime, "time must be after lastUpdateTime");
-        IncentiveDistributionInfo memory currInfo = incentiveDistributionInfos[incentiveId][currIncentive.lastUpdateTime];
-        require(totalSecondsInsideX128 >= currInfo.totalSecondsInsideX128, "totalSecondsInsideX128 must increase");
+        require(timestamp > currIncentive.lastUpdateTime, 'time must be after lastUpdateTime');
+        IncentiveDistributionInfo memory currInfo =
+            incentiveDistributionInfos[incentiveId][currIncentive.lastUpdateTime];
+        require(totalSecondsInsideX128 >= currInfo.totalSecondsInsideX128, 'totalSecondsInsideX128 must increase');
         IncentivePeriod memory currPeriod = incentivePeriods[incentiveId][currIncentive.currentPeriodId];
         uint128 accumulatedReward = 0;
         if (timestamp > currIncentive.endTime) {
             accumulatedReward = (currIncentive.endTime - currIncentive.lastUpdateTime) * currPeriod.rewardPerSecond;
             IncentivePeriod memory nextPeriod = incentivePeriods[incentiveId][currIncentive.currentPeriodId + 1];
-            require(nextPeriod.rewardPerSecond > 0, "next period not exists");
+            require(nextPeriod.rewardPerSecond > 0, 'next period not exists');
             accumulatedReward += (timestamp - currIncentive.endTime) * nextPeriod.rewardPerSecond;
             currIncentive.currentPeriodId += 1;
             currIncentive.endTime = nextPeriod.endTime;
@@ -232,7 +225,13 @@ contract UbeswapV3Farming is IUbeswapV3Farming, AccessControl, OffChainIncentive
             cumulativeRewardMicroEth: uint96(currIncentive.cumulativeReward / 10**6)
         });
 
-        emit IncentiveUpdated(incentiveId, timestamp, totalSecondsInsideX128, currIncentive.cumulativeReward, currIncentive.currentPeriodId);
+        emit IncentiveUpdated(
+            incentiveId,
+            timestamp,
+            totalSecondsInsideX128,
+            currIncentive.cumulativeReward,
+            currIncentive.currentPeriodId
+        );
     }
 
     /// @inheritdoc IUbeswapV3Farming
@@ -242,13 +241,10 @@ contract UbeswapV3Farming is IUbeswapV3Farming, AccessControl, OffChainIncentive
         Incentive storage incentive = incentives[incentiveId];
 
         require(
-            incentive.endTime > 0 && block.timestamp >= (incentive.endTime + minIncentiveEndLagTime), 
+            incentive.endTime > 0 && block.timestamp >= (incentive.endTime + minIncentiveEndLagTime),
             'cannot end incentive before end time'
         );
-        require(
-            incentive.numberOfStakes == 0,
-            'cannot end incentive while deposits are staked'
-        );
+        require(incentive.numberOfStakes == 0, 'cannot end incentive while deposits are staked');
 
         IncentiveRewardInfo memory rewardInfo = incentiveRewardInfos[incentiveId];
         require(rewardInfo.addedRewards > rewardInfo.claimedRewards, 'no refund available');
@@ -272,10 +268,7 @@ contract UbeswapV3Farming is IUbeswapV3Farming, AccessControl, OffChainIncentive
         uint256 tokenId,
         bytes calldata data
     ) external override returns (bytes4) {
-        require(
-            msg.sender == address(nonfungiblePositionManager),
-            'not a univ3 nft'
-        );
+        require(msg.sender == address(nonfungiblePositionManager), 'not a univ3 nft');
 
         (, , , , , int24 tickLower, int24 tickUpper, , , , , ) = nonfungiblePositionManager.positions(tokenId);
 
@@ -305,10 +298,15 @@ contract UbeswapV3Farming is IUbeswapV3Farming, AccessControl, OffChainIncentive
     }
 
     /// @inheritdoc IUbeswapV3Farming
-    function collectFee(INonfungiblePositionManager.CollectParams calldata params) external override payable returns (uint256 amount0, uint256 amount1) {
+    function collectFee(INonfungiblePositionManager.CollectParams calldata params)
+        external
+        payable
+        override
+        returns (uint256 amount0, uint256 amount1)
+    {
         address owner = deposits[params.tokenId].owner;
         require(owner == msg.sender, 'can only be called by deposit owner');
-        (amount0, amount1) = nonfungiblePositionManager.collect{ value: msg.value }(params);
+        (amount0, amount1) = nonfungiblePositionManager.collect{value: msg.value}(params);
         emit FeeCollected(msg.sender, params.tokenId, params.recipient, params.amount0Max, params.amount1Max);
     }
 
@@ -343,17 +341,11 @@ contract UbeswapV3Farming is IUbeswapV3Farming, AccessControl, OffChainIncentive
         Incentive memory incentive = incentives[incentiveId];
         // anyone can call unstakeToken if the block time is after the end time of the incentive
         if (block.timestamp < incentive.endTime) {
-            require(
-                deposit.owner == msg.sender,
-                'only owner can withdraw token before incentive end time'
-            );
+            require(deposit.owner == msg.sender, 'only owner can withdraw token before incentive end time');
         }
 
         if (key.lockTime > 0) {
-            require(
-                key.lockTime < (block.timestamp - stakes[incentiveId][tokenId].stakeTime),
-                'token locked'
-            );
+            require(key.lockTime < (block.timestamp - stakes[incentiveId][tokenId].stakeTime), 'token locked');
         }
 
         uint160 accumulatedSeconds = _collectReward(key, tokenId, deposit.tickLower, deposit.tickUpper);
@@ -377,12 +369,7 @@ contract UbeswapV3Farming is IUbeswapV3Farming, AccessControl, OffChainIncentive
     }
 
     /// @inheritdoc IUbeswapV3Farming
-    function getRewardInfo(IncentiveKey memory key, uint256 tokenId)
-        external
-        view
-        override
-        returns (uint128 reward)
-    {
+    function getRewardInfo(IncentiveKey memory key, uint256 tokenId) external view override returns (uint128 reward) {
         bytes32 incentiveId = IncentiveId.compute(key);
 
         Stake memory stake = stakes[incentiveId][tokenId];
@@ -391,9 +378,11 @@ contract UbeswapV3Farming is IUbeswapV3Farming, AccessControl, OffChainIncentive
         Deposit memory deposit = deposits[tokenId];
         Incentive memory incentive = incentives[incentiveId];
 
-        (, uint160 secondsPerLiquidityInsideX128, ) = key.pool.snapshotCumulativesInside(deposit.tickLower, deposit.tickUpper);
+        (, uint160 secondsPerLiquidityInsideX128, ) =
+            key.pool.snapshotCumulativesInside(deposit.tickLower, deposit.tickUpper);
 
-        IncentiveDistributionInfo  memory incentiveInfoWhenStaked = incentiveDistributionInfos[incentiveId][stake.incentiveLastUpdateTimeOnStake];
+        IncentiveDistributionInfo memory incentiveInfoWhenStaked =
+            incentiveDistributionInfos[incentiveId][stake.incentiveLastUpdateTimeOnStake];
 
         (reward, ) = RewardMath.computeRewardAmount(
             incentive.cumulativeReward, // incentiveCumulativeReward
@@ -409,9 +398,14 @@ contract UbeswapV3Farming is IUbeswapV3Farming, AccessControl, OffChainIncentive
         );
     }
 
-    function _collectReward(IncentiveKey memory key, uint256 tokenId, int24 tickLower, int24 tickUpper) private returns(uint160) {
+    function _collectReward(
+        IncentiveKey memory key,
+        uint256 tokenId,
+        int24 tickLower,
+        int24 tickUpper
+    ) private returns (uint160) {
         bytes32 incentiveId = IncentiveId.compute(key);
-        
+
         Stake memory stake = stakes[incentiveId][tokenId];
         require(stake.liquidity > 0, 'stake does not exist');
 
@@ -419,27 +413,29 @@ contract UbeswapV3Farming is IUbeswapV3Farming, AccessControl, OffChainIncentive
 
         (, uint160 secondsPerLiquidityInsideX128, ) = key.pool.snapshotCumulativesInside(tickLower, tickUpper);
 
-        IncentiveDistributionInfo  memory incentiveInfoWhenStaked = incentiveDistributionInfos[incentiveId][stake.incentiveLastUpdateTimeOnStake];
-        
-        (uint128 reward, uint160 accumulatedSeconds) = RewardMath.computeRewardAmount(
-            incentive.cumulativeReward, // incentiveCumulativeReward
-            uint128(incentiveInfoWhenStaked.cumulativeRewardMicroEth) * 10**6, // incentiveCumulativeRewardWhenStaked
-            incentiveDistributionInfos[incentiveId][incentive.lastUpdateTime].totalSecondsInsideX128, // incentiveTotalSecondsInsideX128
-            incentiveInfoWhenStaked.totalSecondsInsideX128, // incentiveTotalSecondsInsideX128WhenStaked
-            stake.initialSecondsPerLiquidityInsideX128, // stakeInitialSecondsPerLiquidityInsideX128
-            secondsPerLiquidityInsideX128, // positionSecondsPerLiquidityInsideX128
-            stake.liquidity, // liquidity
-            stake.stakeTime, // stakeTime
-            incentive.lastUpdateTime, // incentiveLastUpdateTime
-            stake.claimedReward // stakeClaimedReward
-        );
+        IncentiveDistributionInfo memory incentiveInfoWhenStaked =
+            incentiveDistributionInfos[incentiveId][stake.incentiveLastUpdateTimeOnStake];
+
+        (uint128 reward, uint160 accumulatedSeconds) =
+            RewardMath.computeRewardAmount(
+                incentive.cumulativeReward, // incentiveCumulativeReward
+                uint128(incentiveInfoWhenStaked.cumulativeRewardMicroEth) * 10**6, // incentiveCumulativeRewardWhenStaked
+                incentiveDistributionInfos[incentiveId][incentive.lastUpdateTime].totalSecondsInsideX128, // incentiveTotalSecondsInsideX128
+                incentiveInfoWhenStaked.totalSecondsInsideX128, // incentiveTotalSecondsInsideX128WhenStaked
+                stake.initialSecondsPerLiquidityInsideX128, // stakeInitialSecondsPerLiquidityInsideX128
+                secondsPerLiquidityInsideX128, // positionSecondsPerLiquidityInsideX128
+                stake.liquidity, // liquidity
+                stake.stakeTime, // stakeTime
+                incentive.lastUpdateTime, // incentiveLastUpdateTime
+                stake.claimedReward // stakeClaimedReward
+            );
 
         stakes[incentiveId][tokenId].claimedReward += reward;
 
         incentiveRewardInfos[incentiveId].claimedRewards += reward;
 
         TransferHelperExtended.safeTransferFrom(address(key.rewardToken), address(this), msg.sender, reward);
-        
+
         emit RewardCollected(tokenId, incentiveId, msg.sender, reward, accumulatedSeconds);
 
         return accumulatedSeconds;
@@ -458,7 +454,7 @@ contract UbeswapV3Farming is IUbeswapV3Farming, AccessControl, OffChainIncentive
             NFTPositionInfo.getPositionInfo(factory, nonfungiblePositionManager, tokenId);
 
         require(pool == key.pool, 'token pool is not the incentive pool');
-        require(key.minimumTickRange <= (tickUpper - tickLower) , 'wrong tick range');
+        require(key.minimumTickRange <= (tickUpper - tickLower), 'wrong tick range');
         require(key.maxTickLower >= tickLower && key.minTickLower <= tickLower, 'wrong tickLower');
         require(key.maxTickUpper >= tickUpper && key.minTickUpper <= tickUpper, 'wrong tickUpper');
         require(liquidity > 0, 'cannot stake token with 0 liquidity');
@@ -482,10 +478,15 @@ contract UbeswapV3Farming is IUbeswapV3Farming, AccessControl, OffChainIncentive
     }
 
     function _getStakeInfoForOffChainCalc(bytes32 incentiveId, uint256 tokenId)
-        internal 
-        view 
-        override 
-        returns(uint160 initialSecondsPerLiquidityInsideX128, uint128 liquidity, int24 tickLower, int24 tickUpper) 
+        internal
+        view
+        override
+        returns (
+            uint160 initialSecondsPerLiquidityInsideX128,
+            uint128 liquidity,
+            int24 tickLower,
+            int24 tickUpper
+        )
     {
         initialSecondsPerLiquidityInsideX128 = stakes[incentiveId][tokenId].initialSecondsPerLiquidityInsideX128;
         liquidity = stakes[incentiveId][tokenId].liquidity;

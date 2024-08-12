@@ -66,24 +66,27 @@ interface IUbeswapV3Farming is IERC721Receiver, IOffChainIncentiveCalculations, 
             uint32 numberOfStakes
         );
 
-    /// @notice 
-    function incentivePeriods(bytes32 incentiveId, uint32 periodId) external view returns (
-        uint128 rewardPerSecond,
-        uint32 startTime,
-        uint32 endTime
-    );
+    /// @notice
+    function incentivePeriods(bytes32 incentiveId, uint32 periodId)
+        external
+        view
+        returns (
+            uint128 rewardPerSecond,
+            uint32 startTime,
+            uint32 endTime
+        );
 
-    /// @notice 
-    function incentiveDistributionInfos(bytes32 incentiveId, uint32 lastUpdateTime) external view returns (
-        uint160 totalSecondsInsideX128,
-        uint96 cumulativeRewardMicroEth
-    );
+    /// @notice
+    function incentiveDistributionInfos(bytes32 incentiveId, uint32 lastUpdateTime)
+        external
+        view
+        returns (uint160 totalSecondsInsideX128, uint96 cumulativeRewardMicroEth);
 
-    /// @notice 
-    function incentiveRewardInfos(bytes32 incentiveId) external view returns (
-        uint128 claimedRewards,
-        uint128 addedRewards
-    );
+    /// @notice
+    function incentiveRewardInfos(bytes32 incentiveId)
+        external
+        view
+        returns (uint128 claimedRewards, uint128 addedRewards);
 
     /// @notice Returns information about a deposited NFT
     /// @return owner The owner of the deposited NFT
@@ -118,20 +121,33 @@ interface IUbeswapV3Farming is IERC721Receiver, IOffChainIncentiveCalculations, 
     /// @param key Details of the incentive to create
     /// @param duration The amount of seconds for the first period
     /// @param reward The amount of reward tokens to be distributed on the first period
-    function createIncentive(IncentiveKey memory key, uint32 duration, uint128 reward) external;
+    function createIncentive(
+        IncentiveKey memory key,
+        uint32 duration,
+        uint128 reward
+    ) external;
 
     /// @notice Creates a new period for the incentive
     /// @param key Details of the incentive to extend
     /// @param newPeriodId the id for the new period. It should be one more from the previous period. This is taken for security
     /// @param duration The amount of seconds for the new period
     /// @param reward The amount of reward tokens to be distributed on the new period
-    function extendIncentive(IncentiveKey memory key, uint32 newPeriodId, uint32 duration, uint128 reward) external;
+    function extendIncentive(
+        IncentiveKey memory key,
+        uint32 newPeriodId,
+        uint32 duration,
+        uint128 reward
+    ) external;
 
     /// @notice Update function for total liqudity seconds that is calculated off-chain
     /// @param key Details of the incentive to create
     /// @param totalSecondsInsideX128 total liquidity-seconds
     /// @param timestamp The timestamp of the block that the calculation is done on
-    function updateIncentiveDistributionInfo(IncentiveKey memory key, uint160 totalSecondsInsideX128, uint32 timestamp) external;
+    function updateIncentiveDistributionInfo(
+        IncentiveKey memory key,
+        uint160 totalSecondsInsideX128,
+        uint32 timestamp
+    ) external;
 
     /// @notice Ends an incentive after the incentive end time has passed and all stakes have been withdrawn
     /// @param key Details of the incentive to end
@@ -144,7 +160,10 @@ interface IUbeswapV3Farming is IERC721Receiver, IOffChainIncentiveCalculations, 
     function transferDeposit(uint256 tokenId, address to) external;
 
     /// @notice
-    function collectFee(INonfungiblePositionManager.CollectParams calldata params) external payable returns (uint256 amount0, uint256 amount1);
+    function collectFee(INonfungiblePositionManager.CollectParams calldata params)
+        external
+        payable
+        returns (uint256 amount0, uint256 amount1);
 
     /// @notice Withdraws a Ubeswap V3 LP token `tokenId` from this contract to the recipient `to`
     /// @param tokenId The unique identifier of an Ubeswap V3 LP token
@@ -175,10 +194,7 @@ interface IUbeswapV3Farming is IERC721Receiver, IOffChainIncentiveCalculations, 
     /// @param key The key of the incentive
     /// @param tokenId The ID of the token
     /// @return reward The reward accrued to the NFT for the given incentive thus far
-    function getRewardInfo(IncentiveKey memory key, uint256 tokenId)
-        external
-        view
-        returns (uint128 reward);
+    function getRewardInfo(IncentiveKey memory key, uint256 tokenId) external view returns (uint128 reward);
 
     /// @notice Event emitted when a liquidity mining incentive has been created
     /// @param rewardToken The token being distributed as a reward
@@ -199,7 +215,13 @@ interface IUbeswapV3Farming is IERC721Receiver, IOffChainIncentiveCalculations, 
     event IncentiveExtended(bytes32 indexed incentiveId, uint32 newPeriodId, uint32 duration, uint128 reward);
 
     /// @notice
-    event IncentiveUpdated(bytes32 indexed incentiveId, uint32 timestamp, uint160 totalSecondsInsideX128, uint128 newCumulativeReward, uint32 newPeriodId);
+    event IncentiveUpdated(
+        bytes32 indexed incentiveId,
+        uint32 timestamp,
+        uint160 totalSecondsInsideX128,
+        uint128 newCumulativeReward,
+        uint32 newPeriodId
+    );
 
     /// @notice Event that can be emitted when a liquidity mining incentive has ended
     /// @param incentiveId The incentive which is ending
@@ -229,7 +251,13 @@ interface IUbeswapV3Farming is IERC721Receiver, IOffChainIncentiveCalculations, 
     /// @param to The address where claimed rewards were sent to
     /// @param reward The amount of reward tokens claimed
     /// @param accumulatedSeconds The liquidity-seconds that is accumulated for the token from time of stake
-    event RewardCollected(uint256 indexed tokenId, bytes32 indexed incentiveId, address indexed to, uint256 reward, uint160 accumulatedSeconds);
+    event RewardCollected(
+        uint256 indexed tokenId,
+        bytes32 indexed incentiveId,
+        address indexed to,
+        uint256 reward,
+        uint160 accumulatedSeconds
+    );
 
     /// @notice Event emitted when a fee collected from a pool
     /// @param owner Owner account of the deposited token when the fee collected
