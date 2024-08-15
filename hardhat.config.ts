@@ -1,11 +1,31 @@
-import '@nomiclabs/hardhat-ethers'
-import '@nomiclabs/hardhat-etherscan'
-import '@nomiclabs/hardhat-waffle'
-import '@typechain/hardhat'
-import 'hardhat-contract-sizer'
-import { HardhatUserConfig } from 'hardhat/config'
-import { SolcUserConfig } from 'hardhat/types'
-import 'solidity-coverage'
+import 'dotenv/config';
+import './utils/decrypt-env-vars';
+
+import 'hardhat-deploy';
+import '@nomiclabs/hardhat-ethers';
+import '@nomiclabs/hardhat-etherscan';
+//import '@nomiclabs/hardhat-waffle';
+import '@typechain/hardhat';
+import 'hardhat-contract-sizer';
+import 'hardhat-gas-reporter';
+import 'hardhat-deploy-tenderly';
+import { SolcUserConfig, HardhatUserConfig } from 'hardhat/types';
+import 'solidity-coverage';
+import { accounts, addForkConfiguration } from './utils/network';
+import { task } from 'hardhat/config';
+
+task('accounts', 'Prints the list of accounts', async (taskArgs, hre) => {
+  const accounts = await hre.ethers.getSigners();
+
+  for (const account of accounts) {
+    console.log(account.address);
+  }
+});
+
+task('named-accounts', 'Prints the named accounts', async (taskArgs, hre) => {
+  const accounts = await hre.getNamedAccounts();
+  console.log(accounts);
+});
 
 const DEFAULT_COMPILER_SETTINGS: SolcUserConfig = {
   version: '0.7.6',
@@ -18,7 +38,7 @@ const DEFAULT_COMPILER_SETTINGS: SolcUserConfig = {
       bytecodeHash: 'none',
     },
   },
-}
+};
 
 if (process.env.RUN_COVERAGE == '1') {
   /**
@@ -26,53 +46,60 @@ if (process.env.RUN_COVERAGE == '1') {
    *
    * See https://github.com/sc-forks/solidity-coverage/issues/417#issuecomment-730526466
    */
-  console.info('Using coverage compiler settings')
+  console.info('Using coverage compiler settings');
   DEFAULT_COMPILER_SETTINGS.settings.details = {
     yul: true,
     yulDetails: {
       stackAllocation: true,
     },
-  }
+  };
 }
 
 const config: HardhatUserConfig = {
-  networks: {
+  namedAccounts: {
+    deployer: 1,
+    acc1: 0,
+    acc2: 2,
+    acc3: 4,
+    signerAccount: 3,
+    test1: 6,
+    test2: 7,
+    test3: 8,
+    ecosystem: 9,
+  },
+  networks: addForkConfiguration({
     hardhat: {
-      allowUnlimitedContractSize: false,
+      initialBaseFeePerGas: 0, // to fix : https://github.com/sc-forks/solidity-coverage/issues/652, see https://github.com/sc-forks/solidity-coverage/issues/652#issuecomment-896330136
+      saveDeployments: true,
     },
-    mainnet: {
-      url: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
+    localhost: {
+      url: 'http://localhost:8545',
+      accounts: accounts(),
     },
-    ropsten: {
-      url: `https://ropsten.infura.io/v3/${process.env.INFURA_API_KEY}`,
+    celo_mainnet: {
+      url: 'https://forno.celo.org',
+      chainId: 42220,
+      accounts: accounts('celo_mainnet'),
     },
-    rinkeby: {
-      url: `https://rinkeby.infura.io/v3/${process.env.INFURA_API_KEY}`,
+    celo_alfajores: {
+      url: 'https://alfajores-forno.celo-testnet.org',
+      chainId: 44787,
+      accounts: accounts('celo_alfajores'),
     },
-    goerli: {
-      url: `https://goerli.infura.io/v3/${process.env.INFURA_API_KEY}`,
-    },
-    kovan: {
-      url: `https://kovan.infura.io/v3/${process.env.INFURA_API_KEY}`,
-    },
-    arbitrumRinkeby: {
-      url: `https://arbitrum-rinkeby.infura.io/v3/${process.env.INFURA_API_KEY}`,
-    },
-    arbitrum: {
-      url: `https://arbitrum-mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
-    },
-    optimismKovan: {
-      url: `https://optimism-kovan.infura.io/v3/${process.env.INFURA_API_KEY}`,
-    },
-    optimism: {
-      url: `https://optimism-mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
-    },
-    mumbai: {
-      url: `https://polygon-mumbai.infura.io/v3/${process.env.INFURA_API_KEY}`,
-    },
-    polygon: {
-      url: `https://polygon-mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
-    },
+  }),
+  paths: {
+    sources: 'contracts',
+  },
+  gasReporter: {
+    currency: 'USD',
+    gasPrice: 100,
+    enabled: process.env.REPORT_GAS ? true : false,
+    coinmarketcap: process.env.COINMARKETCAP_API_KEY,
+    maxMethodDiff: 10,
+  },
+  typechain: {
+    outDir: 'typechain',
+    target: 'ethers-v5',
   },
   solidity: {
     compilers: [DEFAULT_COMPILER_SETTINGS],
@@ -82,14 +109,14 @@ const config: HardhatUserConfig = {
     disambiguatePaths: true,
     runOnCompile: false,
   },
-}
+};
 
 if (process.env.ETHERSCAN_API_KEY) {
   config.etherscan = {
     // Your API key for Etherscan
     // Obtain one at https://etherscan.io/
     apiKey: process.env.ETHERSCAN_API_KEY,
-  }
+  };
 }
 
-export default config
+export default config;
