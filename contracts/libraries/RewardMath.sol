@@ -30,8 +30,8 @@ library RewardMath {
     ) internal view returns (uint128 reward, uint160 accumulatedSeconds) {
         // following subtractions are safe
         uint256 totalRewardFromStakeTime = incentiveCumulativeReward - incentiveCumulativeRewardWhenStaked;
-        uint160 totalSecondsInsideFromStakeTime =
-            incentiveTotalSecondsInsideX128 - incentiveTotalSecondsInsideX128WhenStaked;
+        uint160 totalSecondsInsideFromStakeTime = incentiveTotalSecondsInsideX128 -
+            incentiveTotalSecondsInsideX128WhenStaked;
 
         // this operation is safe, as the difference cannot be greater than 1/stake.liquidity
         accumulatedSeconds =
@@ -41,8 +41,11 @@ library RewardMath {
         if (incentiveLastUpdateTime < stakeTime) {
             reward = 0;
         } else {
-            uint256 rewardSoFar =
-                FullMath.mulDiv(totalRewardFromStakeTime, accumulatedSeconds, totalSecondsInsideFromStakeTime);
+            uint256 rewardSoFar = FullMath.mulDiv(
+                totalRewardFromStakeTime,
+                accumulatedSeconds,
+                totalSecondsInsideFromStakeTime
+            );
 
             // following subtractions are safe
             uint256 stakeDuration = block.timestamp - stakeTime;

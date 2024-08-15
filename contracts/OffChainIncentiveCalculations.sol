@@ -5,10 +5,10 @@ import './interfaces/IOffChainIncentiveCalculations.sol';
 import './libraries/KnownLengthSet.sol';
 import '@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol';
 
-/* 
+/*
     This contract provides helper functions for calculating liquiditySeconds for all tokens in the farm, off-chain.
-    These calculations are very costly and should _not_ be called on chain. 
-    
+    These calculations are very costly and should _not_ be called on chain.
+
     Calculation Algorithm
     -----------------------
     - select a recent block and use the timestamp and the number of that block for further calculations
@@ -20,7 +20,7 @@ import '@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol';
 
     Pseudocode
     -----------------------
-    // these calls should be done on the same block number 
+    // these calls should be done on the same block number
     var timestamp = ... // timestamp of the selected block
     var key = ... // information of the incentive
     var incentiveId = ... // id of the incentive, calculated from key
@@ -58,8 +58,12 @@ abstract contract OffChainIncentiveCalculations is IOffChainIncentiveCalculation
         for (uint256 i = startIndex; i < endIndex; i++) {
             uint256 tokenId = _stakedTokens[incentiveId].at(i);
             require(tokenId > 0, 'stake does not exist');
-            (uint160 initialSecondsPerLiquidityInsideX128, uint128 liquidity, int24 tickLower, int24 tickUpper) =
-                _getStakeInfoForOffChainCalc(incentiveId, tokenId);
+            (
+                uint160 initialSecondsPerLiquidityInsideX128,
+                uint128 liquidity,
+                int24 tickLower,
+                int24 tickUpper
+            ) = _getStakeInfoForOffChainCalc(incentiveId, tokenId);
 
             (, uint160 secondsPerLiquidityInsideX128, ) = pool.snapshotCumulativesInside(tickLower, tickUpper);
 
@@ -69,11 +73,7 @@ abstract contract OffChainIncentiveCalculations is IOffChainIncentiveCalculation
         return totalValue;
     }
 
-    function _addStakedToken(
-        bytes32 incentiveId,
-        uint256 tokenId,
-        uint256 currNumberOfStake
-    ) internal {
+    function _addStakedToken(bytes32 incentiveId, uint256 tokenId, uint256 currNumberOfStake) internal {
         _stakedTokens[incentiveId].add(tokenId, currNumberOfStake);
     }
 
@@ -87,14 +87,12 @@ abstract contract OffChainIncentiveCalculations is IOffChainIncentiveCalculation
         unstakedTotalSeconds[incentiveId] += accumulatedSeconds;
     }
 
-    function _getStakeInfoForOffChainCalc(bytes32 incentiveId, uint256 tokenId)
+    function _getStakeInfoForOffChainCalc(
+        bytes32 incentiveId,
+        uint256 tokenId
+    )
         internal
         view
         virtual
-        returns (
-            uint160 initialSecondsPerLiquidityInsideX128,
-            uint128 liquidity,
-            int24 tickLower,
-            int24 tickUpper
-        );
+        returns (uint160 initialSecondsPerLiquidityInsideX128, uint128 liquidity, int24 tickLower, int24 tickUpper);
 }

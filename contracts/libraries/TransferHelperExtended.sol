@@ -13,12 +13,7 @@ library TransferHelperExtended {
     /// @param from The originating address from which the tokens will be transferred
     /// @param to The destination address of the transfer
     /// @param value The amount to be transferred
-    function safeTransferFrom(
-        address token,
-        address from,
-        address to,
-        uint256 value
-    ) internal {
+    function safeTransferFrom(address token, address from, address to, uint256 value) internal {
         require(token.isContract(), 'TransferHelperExtended::safeTransferFrom: call to non-contract');
         TransferHelper.safeTransferFrom(token, from, to, value);
     }
@@ -28,11 +23,7 @@ library TransferHelperExtended {
     /// @param token The contract address of the token which will be transferred
     /// @param to The recipient of the transfer
     /// @param value The value of the transfer
-    function safeTransfer(
-        address token,
-        address to,
-        uint256 value
-    ) internal {
+    function safeTransfer(address token, address to, uint256 value) internal {
         require(token.isContract(), 'TransferHelperExtended::safeTransfer: call to non-contract');
         TransferHelper.safeTransfer(token, to, value);
     }

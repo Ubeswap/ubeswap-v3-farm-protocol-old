@@ -18,6 +18,12 @@ interface IUbeswapV3Farming is IERC721Receiver, IOffChainIncentiveCalculations, 
     /// @param rewardToken The token being distributed as a reward
     /// @param pool The Uniswap V3 compatible pool
     /// @param startTime The time when the incentive program begins
+    /// @param lockTime Minimum time that is required for unstaking a position
+    /// @param minimumTickRange Minimum value of (tickUpper - tickLower) for a position to be staked
+    /// @param maxTickLower Maximum value of tickLower for a position to be staked
+    /// @param minTickLower Minimum value of tickLower for a position to be staked
+    /// @param maxTickUpper Maximum value of tickUpper for a position to be staked
+    /// @param minTickUpper Minimum value of tickUpper for a position to be staked
     struct IncentiveKey {
         IERC20Minimal rewardToken;
         IUniswapV3Pool pool;
@@ -55,7 +61,9 @@ interface IUbeswapV3Farming is IERC721Receiver, IOffChainIncentiveCalculations, 
     /// @return lastUpdateTime time of last update of cumulativeReward and IncentiveDistributionInfo
     /// @return endTime End time of incentive
     /// @return numberOfStakes Number of tokens that are staked on the incentive
-    function incentives(bytes32 incentiveId)
+    function incentives(
+        bytes32 incentiveId
+    )
         external
         view
         returns (
@@ -67,46 +75,38 @@ interface IUbeswapV3Farming is IERC721Receiver, IOffChainIncentiveCalculations, 
         );
 
     /// @notice
-    function incentivePeriods(bytes32 incentiveId, uint32 periodId)
-        external
-        view
-        returns (
-            uint128 rewardPerSecond,
-            uint32 startTime,
-            uint32 endTime
-        );
+    function incentivePeriods(
+        bytes32 incentiveId,
+        uint32 periodId
+    ) external view returns (uint128 rewardPerSecond, uint32 startTime, uint32 endTime);
 
     /// @notice
-    function incentiveDistributionInfos(bytes32 incentiveId, uint32 lastUpdateTime)
-        external
-        view
-        returns (uint160 totalSecondsInsideX128, uint96 cumulativeRewardMicroEth);
+    function incentiveDistributionInfos(
+        bytes32 incentiveId,
+        uint32 lastUpdateTime
+    ) external view returns (uint160 totalSecondsInsideX128, uint96 cumulativeRewardMicroEth);
 
     /// @notice
-    function incentiveRewardInfos(bytes32 incentiveId)
-        external
-        view
-        returns (uint128 claimedRewards, uint128 addedRewards);
+    function incentiveRewardInfos(
+        bytes32 incentiveId
+    ) external view returns (uint128 claimedRewards, uint128 addedRewards);
 
     /// @notice Returns information about a deposited NFT
     /// @return owner The owner of the deposited NFT
     /// @return numberOfStakes Counter of how many incentives for which the liquidity is staked
     /// @return tickLower The lower tick of the range
     /// @return tickUpper The upper tick of the range
-    function deposits(uint256 tokenId)
-        external
-        view
-        returns (
-            address owner,
-            uint48 numberOfStakes,
-            int24 tickLower,
-            int24 tickUpper
-        );
+    function deposits(
+        uint256 tokenId
+    ) external view returns (address owner, uint48 numberOfStakes, int24 tickLower, int24 tickUpper);
 
     /// @notice Returns information about a staked liquidity NFT
     /// @param incentiveId The ID of the incentive for which the token is staked
     /// @param tokenId The ID of the staked token
-    function stakes(bytes32 incentiveId, uint256 tokenId)
+    function stakes(
+        bytes32 incentiveId,
+        uint256 tokenId
+    )
         external
         view
         returns (
@@ -121,23 +121,14 @@ interface IUbeswapV3Farming is IERC721Receiver, IOffChainIncentiveCalculations, 
     /// @param key Details of the incentive to create
     /// @param duration The amount of seconds for the first period
     /// @param reward The amount of reward tokens to be distributed on the first period
-    function createIncentive(
-        IncentiveKey memory key,
-        uint32 duration,
-        uint128 reward
-    ) external;
+    function createIncentive(IncentiveKey memory key, uint32 duration, uint128 reward) external;
 
     /// @notice Creates a new period for the incentive
     /// @param key Details of the incentive to extend
     /// @param newPeriodId the id for the new period. It should be one more from the previous period. This is taken for security
     /// @param duration The amount of seconds for the new period
     /// @param reward The amount of reward tokens to be distributed on the new period
-    function extendIncentive(
-        IncentiveKey memory key,
-        uint32 newPeriodId,
-        uint32 duration,
-        uint128 reward
-    ) external;
+    function extendIncentive(IncentiveKey memory key, uint32 newPeriodId, uint32 duration, uint128 reward) external;
 
     /// @notice Update function for total liqudity seconds that is calculated off-chain
     /// @param key Details of the incentive to create
@@ -160,20 +151,15 @@ interface IUbeswapV3Farming is IERC721Receiver, IOffChainIncentiveCalculations, 
     function transferDeposit(uint256 tokenId, address to) external;
 
     /// @notice
-    function collectFee(INonfungiblePositionManager.CollectParams calldata params)
-        external
-        payable
-        returns (uint256 amount0, uint256 amount1);
+    function collectFee(
+        INonfungiblePositionManager.CollectParams calldata params
+    ) external payable returns (uint256 amount0, uint256 amount1);
 
     /// @notice Withdraws a Ubeswap V3 LP token `tokenId` from this contract to the recipient `to`
     /// @param tokenId The unique identifier of an Ubeswap V3 LP token
     /// @param to The address where the LP token will be sent
     /// @param data An optional data array that will be passed along to the `to` address via the NFT safeTransferFrom
-    function withdrawToken(
-        uint256 tokenId,
-        address to,
-        bytes memory data
-    ) external;
+    function withdrawToken(uint256 tokenId, address to, bytes memory data) external;
 
     /// @notice Stakes a Ubeswap V3 LP token
     /// @param key The key of the incentive for which to stake the NFT
@@ -200,15 +186,23 @@ interface IUbeswapV3Farming is IERC721Receiver, IOffChainIncentiveCalculations, 
     /// @param rewardToken The token being distributed as a reward
     /// @param pool The Uniswap V3 compatible pool
     /// @param startTime The time when the incentive program begins
-    /// @param initialDuration The duration of the first period
-    /// @param initialReward The amount of reward tokens to be distributed in the first period
+    /// @param lockTime Minimum time that is required for unstaking a position
+    /// @param minimumTickRange Minimum value of (tickUpper - tickLower) for a position to be staked
+    /// @param maxTickLower Maximum value of tickLower for a position to be staked
+    /// @param minTickLower Minimum value of tickLower for a position to be staked
+    /// @param maxTickUpper Maximum value of tickUpper for a position to be staked
+    /// @param minTickUpper Minimum value of tickUpper for a position to be staked
     event IncentiveCreated(
         bytes32 indexed incentiveId,
         IERC20Minimal indexed rewardToken,
         IUniswapV3Pool indexed pool,
         uint32 startTime,
-        uint32 initialDuration,
-        uint128 initialReward
+        uint32 lockTime,
+        int24 minimumTickRange,
+        int24 maxTickLower,
+        int24 minTickLower,
+        int24 maxTickUpper,
+        int24 minTickUpper
     );
 
     /// @notice

@@ -19,11 +19,7 @@ library KnownLengthSet {
      *
      * Returns true if the value was added to the set, that is if it was not already present.
      */
-    function add(
-        UintSet storage set,
-        uint256 value,
-        uint256 currentLength
-    ) internal returns (bool) {
+    function add(UintSet storage set, uint256 value, uint256 currentLength) internal returns (bool) {
         if (!contains(set, value)) {
             set._values[currentLength] = value;
             // The value is stored at length-1, but we add 1 to all indexes
@@ -40,11 +36,7 @@ library KnownLengthSet {
      *
      * Returns true if the value was removed from the set, that is if it was present.
      */
-    function remove(
-        UintSet storage set,
-        uint256 value,
-        uint256 currentLength
-    ) internal returns (bool) {
+    function remove(UintSet storage set, uint256 value, uint256 currentLength) internal returns (bool) {
         // We cache the value's position to prevent multiple reads from the same storage slot
         uint256 position = set._positions[value];
 

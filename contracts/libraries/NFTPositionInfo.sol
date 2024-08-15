@@ -20,16 +20,7 @@ library NFTPositionInfo {
         IUniswapV3Factory factory,
         INonfungiblePositionManager nonfungiblePositionManager,
         uint256 tokenId
-    )
-        internal
-        view
-        returns (
-            IUniswapV3Pool pool,
-            int24 tickLower,
-            int24 tickUpper,
-            uint128 liquidity
-        )
-    {
+    ) internal view returns (IUniswapV3Pool pool, int24 tickLower, int24 tickUpper, uint128 liquidity) {
         address token0;
         address token1;
         uint24 fee;
@@ -40,7 +31,7 @@ library NFTPositionInfo {
         pool = IUniswapV3Pool(
             PoolAddress.computeAddress(
                 address(factory),
-                PoolAddress.PoolKey({token0: token0, token1: token1, fee: fee})
+                PoolAddress.PoolKey({ token0: token0, token1: token1, fee: fee })
             )
         );
     }
